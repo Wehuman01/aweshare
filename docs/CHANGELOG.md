@@ -3,6 +3,20 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.7.7] - 2026-10-23
+
+### Added
+
+- **Route groups (`config.groups.toml`, `aweshare hub groups`)** — one stable name in front of an ordered list of member aliases: a consumer calling the group name is served by the first member that can, the members tried in order, each at most once per request, unresolvable ones skipped. Members are ordinary aliases — hub-local (`hub/...`) or any producer's — so the hub itself and every producer join pools as equals, each member keeping its own caps, daily budget and model-honesty audit; a single-member group is today's alias, so the feature is opt-in and backwards compatible. Same queue semantics as per-alias backups (alias-side failover triggers, the `x-aweshare-fallback` stamp, per-attempt usage rows, probes that never fail over) plus two additions: a member that fails with a backend-dead fault (producer offline, degraded backend, closed tunnel, blocked) is skipped for 60s, doubling per consecutive failure up to 10 minutes and cleared by a success — busy admission, spent daily budgets and closed share windows are not health signals and cool nothing down; and a group with no member on the request's wire answers 404, while a group name that is also a real alias resolves to the real alias (warned where the file loads). Same file conventions as `config.backups.toml`: hot-reload within ~2s, a broken edit keeps the previous groups, an invalid file fails `hub serve` at startup, and `hub init` scaffolds it.
+
+- **Fixed upstream routing headers per backend (`headers`)** — a backend that sits behind an account-pinning proxy (Magpie's `X-Magpie-Account` and friends) can now pin non-secret routing headers onto every upstream request: the adapter lowercases the consumer's headers, strips the edge-injected families, applies the backend's `headers` table, and only then injects the backend's own credential — so producer routing always wins over whatever the consumer sent. Parse-time guards, shared by the producer agent and the hub's local producer: reserved transport and credential headers (`authorization`, `x-api-key`, `cookie`, `host`, `content-length`, `cf-*`, `x-forwarded-*`, …) are rejected with a "use keyRef for credentials" hint, names must be valid HTTP header names, values strings, and case-variant duplicates are rejected rather than silently collapsed. Health probes carry the pinned headers too, so a pinned account sees probes as itself.
+
+### Fixed
+
+- **A stuck degraded streak is recoverable and visible** — a hub-local backend that degraded once stayed degraded until a probe succeeded, and nothing let an operator intervene when the upstream had long since recovered. Probe failures while already degraded are now logged (verdict, reason, next attempt), `POST /admin/v1/probe` plus `aweshare hub probe [BACKEND...]` force a health pass out of band (the reply reports which backends changed state), and editing `config.produce.toml` or a SIGHUP resets the in-memory HealthGate instead of leaving a process restart as the only recovery. `LocalProducer.healthReport()` reports healthy backends explicitly.
+
+- **Hub restart recovery** — a hub that restarts with a missing pepper file while identities exist regenerated it, silently stranding every producer token, consumer key and invite code; it now fails fast naming the file to restore from backup. Schema v20 adds the `probe_runs` day index and prunes probe-run rows older than 30 days.
+
 ## [0.7.6] - 2026-09-15
 
 ### Added
@@ -333,7 +347,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 - **Docker image publishes linux/amd64 only** — the release workflow drops the QEMU-emulated arm64 half of the multi-arch image (the slowest part of every release); arm64 hosts can still run the amd64 image under emulation.
 
-- Community-hub docs: consumer invites can be redeemed with one `curl` against `/invites/v1/redeem` (no Node needed on that machine), and day-to-day provider switching via [aweswitch](https://github.com/Webioinfo01/aweswitch) profiles is now recommended (EN + 中文).
+- Community-hub docs: consumer invites can be redeemed with one `curl` against `/invites/v1/redeem` (no Node needed on that machine), and day-to-day provider switching via [aweswitch](https://github.com/wehuman01/aweswitch) profiles is now recommended (EN + 中文).
 
 ## [0.4.8] - 2026-08-25
 

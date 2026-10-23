@@ -139,7 +139,7 @@ curl https://aweshare.wehuman.top/v1/chat/completions \
 
 ### 推荐工具：用 aweswitch 管理供应商切换
 
-日常使用中，hub 大概率只是你多个 API 供应商之一。[aweswitch](https://github.com/Webioinfo01/aweswitch) 把「agent × 供应商」的每种组合存成命名 profile，启动时注入环境变量、不碰全局配置（`pip3 install aweswitch`，需 Python ≥ 3.9）。走 aweshare 的 profile 就是普通的一条：
+日常使用中，hub 大概率只是你多个 API 供应商之一。[aweswitch](https://github.com/wehuman01/aweswitch) 把「agent × 供应商」的每种组合存成命名 profile，启动时注入环境变量、不碰全局配置（`pip3 install aweswitch`，需 Python ≥ 3.9）。走 aweshare 的 profile 就是普通的一条：
 
 ```json
 {
@@ -159,7 +159,7 @@ curl https://aweshare.wehuman.top/v1/chat/completions \
 }
 ```
 
-用 `aweswitch cc-aweshare` 启动；Codex / OpenCode profile 与官方账号登录见 [aweswitch README](https://github.com/Webioinfo01/aweswitch)。
+用 `aweswitch cc-aweshare` 启动；Codex / OpenCode profile 与官方账号登录见 [aweswitch README](https://github.com/wehuman01/aweswitch)。
 
 ## 配额与公平使用
 

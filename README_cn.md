@@ -1,6 +1,6 @@
 <div align="center">
   <img src="./logo/logo.png" alt="aweshare" width="760">
-  <h1>aweshare：开源、local-first 的 AI 能力中继 <a href="https://github.com/Webioinfo01/aweskill"><img src="https://raw.githubusercontent.com/Webioinfo01/aweskill/main/logo/aweskill-badge2.svg" alt="aweskill companion"></a></h1>
+  <h1>aweshare：源码可得、local-first 的 AI 能力中继<a href="https://github.com/wehuman01/aweskill"><img src="https://raw.githubusercontent.com/wehuman01/aweskill/main/logo/aweskill-badge2.svg" alt="aweskill companion"></a></h1>
   <p><strong>分享你闲置的本地模型与 token 订阅，或使用别人分享的——实现 token 的共享经济。</strong></p>
   <p>通过自建 Hub 共享本地 Ollama/vLLM 或已授权的 OpenAI/Anthropic 后端，消费者用标准 SDK 以 <code>命名空间/别名</code> 调用。</p>
   <p><strong>上游 API Key 永不离开生产者设备。</strong></p>
@@ -14,7 +14,7 @@
     <a href="https://ko-fi.com/mugpeng"><img src="https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
   </p>
   <p>
-     <a href="https://github.com/wehuman01/aweshare-source/releases"><img src="https://img.shields.io/badge/version-0.7.5-7C3AED?style=flat-square" alt="Version"></a>
+     <a href="https://github.com/wehuman01/aweshare-source/releases"><img src="https://img.shields.io/npm/v/aweshare?style=flat-square&color=7C3AED" alt="Version"></a>
     <a href="https://github.com/wehuman01/aweshare"><img src="https://img.shields.io/badge/node-%E2%89%A522-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/wehuman01/aweshare/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-proprietary-E34F26?style=flat-square" alt="License"></a>
     <a href="https://www.npmjs.com/package/aweshare"><img src="https://img.shields.io/badge/npm-aweshare-7C3AED?style=flat-square" alt="npm package"></a>
@@ -54,7 +54,7 @@
 
 ## 信任边界（先读这个）
 
-- 为完成路由与计量，**消费者的提示词与模型响应都会经过 Hub，不是端到端加密**。Hub 不持久化任何请求/响应内容，但 Hub 运维者技术上可见明文——请只使用你信得过的 Hub 实例（这也是 Hub 开源 + 自建部署的意义）。
+- 为完成路由与计量，**消费者的提示词与模型响应都会经过 Hub，不是端到端加密**。Hub 不持久化任何请求/响应内容，但 Hub 运维者技术上可见明文——请只使用你信得过的 Hub 实例（这也是 Hub 源码可得 + 自建部署的意义）。
 - 上游 API Key 永不离开生产者设备，也不会发给消费者。令牌在库内**有意存两份**：加盐 SHA-256 哈希用于认证，明文同时保留，运维者可用 `hub list invites --token` 把弄丢的令牌交还本人。邀请码同理——明文可通过 `hub list invites --reveal` 找回。数据库泄露会暴露全部身份，请妥善保管数据目录。
 - 令牌吊销是**可逆挂起**（`hub admin invite revoke N` / `hub admin invite restore N`，按邀请码操作），且邀请码与它换出的生产者同进退：撤销已兑换的码即挂起对应生产者（并断开其隧道），从任一侧 restore 都同时救回两者。吊销不删除任何数据——offerings 与用量记录在挂起期间完整保留。
 
@@ -287,6 +287,8 @@ maxConcurrencyPerUser = 1                # 单个消费者在该别名上的并�
 # shareTimezone = "Asia/Shanghai"        # 默认取本机显示时区（AWESHARE_TIMEZONE）
 ```
 
+后端可选 `headers` 用于固定非机密路由头，例如 `headers = { "X-Magpie-Account" = "you@example.com" }`。固定头会覆盖消费者传入的同名头（不区分大小写）；凭据仍通过 `keyRef` 存入 `secrets.json`。
+
 一条 offering 恰好暴露一个上游模型：消费者调用别名，hub 在转发前把请求里的 model 强制改写为 `upstreamModel`——他们永远无法选用其他模型。想多开放模型就多写几条 `[[offerings]]`。
 
 一个别名也可以同时说多种线上协议：把 `backend = "…"` 换成列表 `backends = ["a", "b"]`，该块会按 backend 各注册一条 offering。注册以 `别名 + 协议` 为键，因此列出的 backend 协议必须互不相同（重复会被 hub 拒绝）；不做任何协议转换——每条注册只走自己的线上协议。消费者用任意 SDK 调同一个别名即可，`producer list` / `consumer list` 会把多协议行合并成一条显示。
@@ -369,6 +371,33 @@ aweshare hub backups peng/qwen3-coder --clear
 - 全部失败时，返回的是**主 alias 的原始错误**——消费者问的是它，值得解释的也是它。
 
 文件在 hub 数据目录里与 `config.toml` 并排（`~/.aweshare-hub/config.backups.toml`；Docker：`/data/config.backups.toml`），与其他 hub 配置一样热重载——编辑约 2 秒内生效，坏文件记日志并沿用旧队列，启动时遇到非法文件直接拒绝启动。`hub init` 会生成模板（注释齐全、内容为空）。与 `config.toml` 一样是本机文件，不在 admin REST API 里：远程 hub 请在服务器上跑命令（ssh / `docker exec`）或直接改文件。
+
+## 路由组（有序成员池）
+
+别名备份救的是某一个点名 alias。**路由组**再进一步：运营者把一个稳定的名字放在一列有序的成员 alias 前面——同一个上游模型，后面挂着多个账号或多个生产者——消费者只配这一个名字。hub 按序尝试成员，第一个能服务的赢。
+
+```toml
+# ~/.aweshare-hub/config.groups.toml — 键 = 组名，值 = 有序成员列表
+"hub/step-5-preview" = ["hub/step-5-preview-1", "hub/step-5-preview-2", "peng/step-5-preview"]
+```
+
+```bash
+aweshare hub groups                                # 列出全部组
+aweshare hub groups hub/step-5-preview             # 看一条
+aweshare hub groups hub/step-5-preview --add hub/step-5-preview-2
+aweshare hub groups hub/step-5-preview --add peng/step-5-preview --first   # 插到队首
+aweshare hub groups hub/step-5-preview --remove hub/step-5-preview-2
+aweshare hub groups hub/step-5-preview --clear
+```
+
+语义与备份同一套队列规则，外加两点：
+
+- **成员就是普通 alias**——hub 自己的（`hub/...`）或任何生产者的——各自保留自己的限额、当日额度和模型诚实审计。组永远不绕开准入：实际服务成员的 `maxConcurrentUsers`、每用户并发和 `dailyTokens` 与直请求时完全一致，用量记在成员自己账上。成员列表就是写下的内容：没有隐式跳转，每个成员每次请求至多试一次，解析不到的成员直接跳过。
+- **组名与真实 alias 同名时，真实 alias 胜出**——具体的赢过池子。文件加载处会记一条警告；起名时避开生产者会注册的名字（`hub/...` 挨着 hub 自家 offering 是最自然的位置）。
+- **冷却**：成员以“后端已死”类故障失败时（producer 掉线、backend 降级、tunnel 断开、被封），跳过 60 秒，连续失败翻倍至上限 10 分钟；一旦成功立即解除。全部成员都在冷却时，放行最早恢复的那一个作为探活。准入忙、当日额度用尽、共享窗口关闭都不是健康信号，不触发冷却——它们各有精确语义。
+- 与备份一样：只在 alias 侧故障时转移，接管的成员在响应上盖 `x-aweshare-fallback: <实际服务的alias>` 头，每次尝试各记一条 usage row，探针不转移——`consumer list --ping hub/step-5-preview` 如实反映组的头成员。组在请求的线上协议下没有任何成员时返回 404，与未知 alias 一样；全部成员失败时，返回第一个真正解析到的成员的错误。
+
+文件在 hub 数据目录里与 `config.toml` 并排（`~/.aweshare-hub/config.groups.toml`；Docker：`/data/config.groups.toml`），约定与 `config.backups.toml` 完全相同：约 2 秒热重载，坏编辑沿用旧组，非法文件启动时拒绝，`hub init` 生成模板，同样是本机文件、不在 admin REST API 里。
 
 ## 端点与错误
 
@@ -526,19 +555,22 @@ aweshare 是一个不断壮大的 "awesome" 工具家族中的一员 — 围绕 
 
 ### CLI 工具
 
-- **[aweskill](https://aweskill.webioinfo.top/)** — CLI 优先的技能包管理器，支持 47+ AI 编程 agent。
-- **[aweswitch](https://github.com/Webioinfo01/aweswitch)** — Claude Code、Codex、OpenCode 的 agent 配置切换器。
-- **[awerouter](https://github.com/mugpeng/awerouter)** — 智能路由器，用结构信号把请求分给 Flash 或 Pro 模型，减少不必要的模型开销。
-- **[aweshelf](https://github.com/Webioinfo01/aweshelf)** — 收藏、分类、恢复 AI 编程会话，还能搭配 aweswitch 实现保存配置，一键启动。
+- **[aweskill](https://aweskill.wehuman.top/)** — CLI 优先的技能包管理器，支持 47+ AI 编程 agent。
+- **[aweswitch](https://github.com/wehuman01/aweswitch)** — Claude Code、Codex、OpenCode 的 agent 配置切换器。
+- **[awerouter](https://github.com/wehuman01/awerouter)** — 智能路由器，用结构信号把请求分给 Flash 或 Pro 模型，减少不必要的模型开销。
+- **[aweshelf](https://github.com/wehuman01/aweshelf)** — 收藏、分类、恢复 AI 编程会话，还能搭配 aweswitch 实现保存配置，一键启动。
 - **[aweshare](https://github.com/wehuman01/aweshare)** — 通过自建 Hub 共享本地 Ollama/vLLM，或国产厂商 coding plan，或已授权的 OpenAI/Anthropic 帐号订阅，实现 token 的共享经济。
 - **[awewarm](https://github.com/wehuman01/awewarm)** — 订阅窗口保持器，让 AI 编程套餐的窗口持续激活，无论是本地设置，还是通过远程连接的服务器。
-- **[awescholar](https://github.com/Webioinfo01/awescholar)** — AI agent 可自主执行的科学文献发现与策展，搜索、标注、筛选和报告学术论文。
+- **[awescholar](https://github.com/wehuman01/awescholar)** — AI agent 可自主执行的科学文献发现与策展，搜索、标注、筛选和报告学术论文。
+- **[awecontrib](https://github.com/wehuman01/awecontrib)** — 每个仓库一条 verify 入口：写入一个小的 verify 脚本和最小 CI，本地和 CI 跑的是同一条命令。
 
 ### 桌面应用
 
+- **[awefork](https://github.com/wehuman01/awefork)** — 把 AI 编程 agent 的会话变成一棵树的桌面工作台：任意一轮，随时分叉，每条分支都留着；搭配 aweswitch 用更顺手 — 用 profile 启动会话，再回来分叉它的历史。
 - **[awedot](https://awedot.wehuman.top/)** — 悬浮球驻留屏幕边缘，实时追踪当前 AI 会话；一键收藏、随时恢复，并可搭配 aweswitch 固定 agent 配置（比如用 GLM 模型启动）。
 
 ### Project Collections
 
 - **[Awesome AI Meets Biology](https://github.com/Webioinfo01/Awesome-AI-Meets-Biology)** — AI 在生物学、生物信息学和生物医学研究中应用的精选综述。由 awescholar 驱动。
 - **[Awesome AI Virtual Tumor](https://github.com/Webioinfo01/Awesome-AI-Virtual-Tumor)** — 面向虚拟肿瘤建模与仿真的前沿 AI 系统精选合集：静态模型、动态模型、agent、基准与综述。
+- **[AgentX](https://github.com/Webioinfo01/agentx-hub)** — 科研 AI agent 社区目录：Verified Run 评审、实时 GitHub 指标和月度报告，由 awescholar 校验流水线策展。

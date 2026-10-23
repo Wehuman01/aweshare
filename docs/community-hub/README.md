@@ -139,7 +139,7 @@ Then point any tool that accepts a custom OpenAI/Anthropic base URL at the hub a
 
 ### Recommended: manage provider switching with aweswitch
 
-Day-to-day, the hub will likely be one of several API providers you use. [aweswitch](https://github.com/Webioinfo01/aweswitch) keeps each agent × provider combination as a named profile and launches it without touching global config (`pip3 install aweswitch`, Python ≥ 3.9). An aweshare-backed profile is just another entry:
+Day-to-day, the hub will likely be one of several API providers you use. [aweswitch](https://github.com/wehuman01/aweswitch) keeps each agent × provider combination as a named profile and launches it without touching global config (`pip3 install aweswitch`, Python ≥ 3.9). An aweshare-backed profile is just another entry:
 
 ```json
 {
@@ -159,7 +159,7 @@ Day-to-day, the hub will likely be one of several API providers you use. [aweswi
 }
 ```
 
-Launch it with `aweswitch cc-aweshare`; Codex / OpenCode profiles and official-account logins are covered in the [aweswitch README](https://github.com/Webioinfo01/aweswitch).
+Launch it with `aweswitch cc-aweshare`; Codex / OpenCode profiles and official-account logins are covered in the [aweswitch README](https://github.com/wehuman01/aweswitch).
 
 ## Caps and fair use
 

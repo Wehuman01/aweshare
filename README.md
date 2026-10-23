@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./logo/logo.png" alt="aweshare" width="760">
-  <h1>aweshare: Local-first AI Capability Relay <a href="https://github.com/Webioinfo01/aweskill"><img src="https://raw.githubusercontent.com/Webioinfo01/aweskill/main/logo/aweskill-badge2.svg" alt="aweskill companion"></a></h1>
-  <p><strong>An open-source, local-first AI capability relay: share your idle local models and token subscriptions, or use what others share — a sharing economy for tokens.</strong></p>
+  <h1>aweshare: Local-first AI Capability Relay <a href="https://github.com/wehuman01/aweskill"><img src="https://raw.githubusercontent.com/wehuman01/aweskill/main/logo/aweskill-badge2.svg" alt="aweskill companion"></a></h1>
+  <p><strong>A source-available, local-first AI capability relay: share your idle local models and token subscriptions, or use what others share — a sharing economy for tokens.</strong></p>
   <p>Share local Ollama/vLLM or authorized OpenAI/Anthropic backends through a self-hosted hub, consumed with standard SDKs via <code>namespace/alias</code>.</p>
   <p><strong>Upstream API keys never leave the producer's device.</strong></p>
   <p>
@@ -14,7 +14,7 @@
     <a href="https://ko-fi.com/mugpeng"><img src="https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
   </p>
   <p>
-     <a href="https://github.com/wehuman01/aweshare-source/releases"><img src="https://img.shields.io/badge/version-0.7.5-7C3AED?style=flat-square" alt="Version"></a>
+     <a href="https://github.com/wehuman01/aweshare-source/releases"><img src="https://img.shields.io/npm/v/aweshare?style=flat-square&color=7C3AED" alt="Version"></a>
     <a href="https://github.com/wehuman01/aweshare"><img src="https://img.shields.io/badge/node-%E2%89%A522-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/wehuman01/aweshare/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-proprietary-E34F26?style=flat-square" alt="License"></a>
     <a href="https://www.npmjs.com/package/aweshare"><img src="https://img.shields.io/badge/npm-aweshare-7C3AED?style=flat-square" alt="npm package"></a>
@@ -54,7 +54,7 @@ Consumer (standard SDK, zero changes)         Producer side
 
 ## Trust boundary (read this first)
 
-- To route and meter, **consumer prompts and model responses transit the hub in plaintext — this is not end-to-end encryption**. The hub persists no request/response content, but the hub operator can technically see it. Only use a hub instance you trust — which is why the hub is open source and self-hostable.
+- To route and meter, **consumer prompts and model responses transit the hub in plaintext — this is not end-to-end encryption**. The hub persists no request/response content, but the hub operator can technically see it. Only use a hub instance you trust — which is why the hub is source-available and self-hostable.
 - Upstream API keys never leave the producer's device and are never sent to consumers. Tokens are stored twice on purpose: a **peppered SHA-256 hash** drives authentication, and the plaintext is kept so the operator can hand a lost one back (`hub list invites --token`). Invite codes work the same way — their plaintext is re-viewable with `hub list invites --reveal`. A DB leak therefore exposes every identity, so guard the data dir.
 - Token revocation is **reversible suspension** (`hub admin invite revoke N` / `hub admin invite restore N`, by invite), and an invite and the producer it minted move together: revoking a redeemed code suspends that producer (and closes its tunnel), and restoring from either handle revives both. Nothing is deleted on revoke — offerings and usage history survive a suspension.
 
@@ -288,6 +288,8 @@ maxConcurrencyPerUser = 1                # concurrent requests per consumer on t
 # shareTimezone = "Asia/Shanghai"        # default: this machine's display zone (AWESHARE_TIMEZONE)
 ```
 
+Optional backend `headers` pins non-secret upstream routing headers (for example `headers = { "X-Magpie-Account" = "you@example.com" }`). Fixed headers override consumer headers regardless of casing; credentials still belong in `secrets.json` via `keyRef`.
+
 One offering exposes exactly one upstream model: consumers call the alias and the hub rewrites the request's model to `upstreamModel` before dispatch — they can never pick another model. To share more models, add more `[[offerings]]`.
 
 One alias can also speak several wire protocols at once: replace `backend = "…"` with a list — `backends = ["a", "b"]` — and the block registers one offering per backend. Registrations are keyed by `alias` + `protocol`, so the listed backends must use distinct protocols (the hub rejects a duplicate); no conversion ever happens — each registration relays on its own wire. Consumers call the same alias with whichever SDK they prefer, and `producer list` / `consumer list` merge the rows into one.
@@ -374,6 +376,33 @@ Semantics, deliberately close to a queue of literal strings:
 - When every entry fails, the response is the **primary's original error** — the one the consumer asked about is the one worth explaining.
 
 The file lives in the hub data dir next to `config.toml` (`~/.aweshare-hub/config.backups.toml`; Docker: `/data/config.backups.toml`) and hot-reloads like every other hub config — edits apply within ~2s, a broken file is logged while the previous queues keep serving, an invalid file fails `hub serve` at startup. `hub init` scaffolds it (commented, empty). Like `config.toml` itself it is a this-machine file, not part of the admin REST API: on a remote hub, run the command there (ssh / `docker exec`) or edit the file.
+
+## Route groups (ordered member pools)
+
+Backups rescue one named alias. **Route groups** go a step further: the operator puts one stable name in front of an ordered list of member aliases — the same upstream model behind several accounts or producers — and consumers configure that one name. The hub tries the members in order; the first that can serve wins.
+
+```toml
+# ~/.aweshare-hub/config.groups.toml — key = group, value = ordered members
+"hub/step-5-preview" = ["hub/step-5-preview-1", "hub/step-5-preview-2", "peng/step-5-preview"]
+```
+
+```bash
+aweshare hub groups                                # list every group
+aweshare hub groups hub/step-5-preview             # show one
+aweshare hub groups hub/step-5-preview --add hub/step-5-preview-2
+aweshare hub groups hub/step-5-preview --add peng/step-5-preview --first   # prepend
+aweshare hub groups hub/step-5-preview --remove hub/step-5-preview-2
+aweshare hub groups hub/step-5-preview --clear
+```
+
+Semantics, the same queue rules as backups with two additions:
+
+- **Members are ordinary aliases** — hub-local (`hub/...`) or any producer's — each keeping its own caps, daily budget and model-honesty audit. A group never bypasses admission: the serving member's `maxConcurrentUsers`, per-user concurrency and `dailyTokens` apply exactly as they would for a direct request, and its usage lands on its own account. The member list is exactly what was written: no implicit hops, each member tried at most once per request, unresolvable members skipped.
+- **A group name that is also a real alias resolves to the real alias** — the specific wins over the pool. The hub logs a warning where the file loads; pick names no producer will register (`hub/...` beside the hub's own offerings is the natural spot).
+- **Cooldowns**: a member that fails with a backend-dead fault (producer offline, degraded backend, closed tunnel, blocked) is skipped for 60s, doubling per consecutive failure up to 10 minutes; a success clears it at once. When every member is cooling down, the one back soonest is let through as the probe. Busy admission, spent daily budgets and closed share windows are not health signals and cool nothing down — each has its own precise semantics.
+- As with backups: failover triggers on alias-side faults only, a serving member stamps `x-aweshare-fallback: <alias actually served>`, each attempt's usage row is its own, and probes never fail over — `consumer list --ping hub/step-5-preview` tells the truth about the group's head member. A group with no member on the request's wire answers 404 like an unknown alias; when every member fails, the response is the first member that actually resolved — its error.
+
+The file lives in the hub data dir next to `config.toml` (`~/.aweshare-hub/config.groups.toml`; Docker: `/data/config.groups.toml`) with the same conventions as `config.backups.toml`: hot-reload within ~2s, a broken edit keeps the previous groups, an invalid file fails `hub serve` at startup, `hub init` scaffolds it, and it is a this-machine file rather than part of the admin REST API.
 
 ## Endpoints and errors
 
@@ -534,19 +563,22 @@ aweshare is part of a growing family of "awesome" tools — CLI-first, local-fir
 
 ### CLI Tools
 
-- **[aweskill](https://aweskill.webioinfo.top/)** — CLI-first skill package manager supporting 47+ AI coding agents.
-- **[aweswitch](https://github.com/Webioinfo01/aweswitch)** — Agent profile switcher for Claude Code, Codex, and OpenCode.
-- **[awerouter](https://github.com/mugpeng/awerouter)** — Smart router that splits requests between Flash and Pro models using structural signals, cutting unnecessary model spend.
-- **[aweshelf](https://github.com/Webioinfo01/aweshelf)** — Bookmark, categorize, and restore AI coding sessions; pairs with aweswitch to save profiles and launch with one command.
+- **[aweskill](https://aweskill.wehuman.top/)** — CLI-first skill package manager supporting 47+ AI coding agents.
+- **[aweswitch](https://github.com/wehuman01/aweswitch)** — Agent profile switcher for Claude Code, Codex, and OpenCode.
+- **[awerouter](https://github.com/wehuman01/awerouter)** — Smart router that splits requests between Flash and Pro models using structural signals, cutting unnecessary model spend.
+- **[aweshelf](https://github.com/wehuman01/aweshelf)** — Bookmark, categorize, and restore AI coding sessions; pairs with aweswitch to save profiles and launch with one command.
 - **[aweshare](https://github.com/wehuman01/aweshare)** — Share local Ollama/vLLM backends, domestic coding plans, or authorized OpenAI/Anthropic subscriptions through a self-hosted hub — a sharing economy for tokens.
 - **[awewarm](https://github.com/wehuman01/awewarm)** — Subscription window warmer that keeps AI coding-plan windows active, for local setups and through a remote hub server.
-- **[awescholar](https://github.com/Webioinfo01/awescholar)** — AI-agent-operable scientific literature discovery and curation.
+- **[awescholar](https://github.com/wehuman01/awescholar)** — AI-agent-operable scientific literature discovery and curation.
+- **[awecontrib](https://github.com/wehuman01/awecontrib)** — One verify entry per repo: writes a small `verify` file and a minimal CI, so local and CI run the exact same checks.
 
 ### Desktop Apps
 
+- **[awefork](https://github.com/wehuman01/awefork)** — Desktop workbench that turns AI coding-agent sessions into a tree: fork any turn, keep every branch. Pairs with aweswitch — launch a session with a profile, then fork its history.
 - **[awedot](https://awedot.wehuman.top/)** — A floating orb at your screen edge keeps track of the current AI session: bookmark it in one click, resume anytime, and pair with aweswitch to pin the agent's config (e.g., relaunch with the GLM model).
 
 ### Project Collections
 
 - **[Awesome AI Meets Biology](https://github.com/Webioinfo01/Awesome-AI-Meets-Biology)** — A curated survey of AI applications in biology, bioinformatics, and biomedical research. Powered by awescholar.
 - **[Awesome AI Virtual Tumor](https://github.com/Webioinfo01/Awesome-AI-Virtual-Tumor)** — A curated collection of state-of-the-art AI systems for virtual tumor modeling and simulation: static models, dynamic models, agents, benchmarks, and reviews.
+- **[AgentX](https://github.com/Webioinfo01/agentx-hub)** — A community directory of scientific research AI agents: verified-run reviews, live GitHub metrics, and monthly reports, curated through awescholar's validated pipeline.

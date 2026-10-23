@@ -16,6 +16,7 @@ id = "ollama"
 protocol = "openai"
 baseUrl = "http://127.0.0.1:11434/v1"
 # keyRef = "ollama-key"     # optional; keys live in secrets.json
+# headers = { "X-Magpie-Account" = "you@example.com" } # fixed non-secret routing headers
 
 [[backends]]
 id = "anthropic"

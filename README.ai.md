@@ -241,7 +241,7 @@ Remind the consumer: prompts and responses transit the hub in plaintext — only
    ```
    Consumers redeem codes themselves (`aweshare consumer join`); producers via `aweshare producer join`.
 3. Administering a remote hub: run admin commands on the server (`ssh` + CLI, or `docker exec aweshare-hub aweshare hub ...`), or locally with `AWESHARE_HUB_URL=https://<hub-host>` plus the admin-token file in a local data dir — otherwise they fail with "no admin token" / connection refused.
-4. Guardrails you can tune on request: per-consumer `aweshare hub limits NAME [--rps N] [--tpm N] [--max-total-tokens N] ...`, per-alias failover queues `aweshare hub backups ALIAS --add OTHER/BACKUP` (file: `config.backups.toml`, hot-reloads), suspension `aweshare hub admin invite revoke N` / `restore N` (reversible, invite-keyed).
+4. Guardrails you can tune on request: per-consumer `aweshare hub limits NAME [--rps N] [--tpm N] [--max-total-tokens N] ...`, per-alias failover queues `aweshare hub backups ALIAS --add OTHER/BACKUP` (file: `config.backups.toml`, hot-reloads), route groups `aweshare hub groups GROUP --add OTHER/MEMBER` (file: `config.groups.toml`, hot-reloads), suspension `aweshare hub admin invite revoke N` / `restore N` (reversible, invite-keyed).
 5. Security notes for the operator: keep :8787 off the public internet behind TLS; a redeemed consumer key can call **every** offering on the hub; tokens/codes stored plaintext-recoverable (`hub list invites --reveal` / `--token`) means a data-dir leak exposes identities — guard it.
 
 ---
@@ -356,4 +356,4 @@ If the user shares a coding-plan-backed endpoint through aweshare, pair it with 
 
 ### aweswitch — agent profile switching
 
-Consumers who juggle several providers can use [aweswitch](https://github.com/Webioinfo01/aweswitch) to switch Claude Code / Codex / OpenCode profiles; pointing one of those profiles at an aweshare hub is just another provider entry.
+Consumers who juggle several providers can use [aweswitch](https://github.com/wehuman01/aweswitch) to switch Claude Code / Codex / OpenCode profiles; pointing one of those profiles at an aweshare hub is just another provider entry.
