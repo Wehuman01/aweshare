@@ -3,6 +3,26 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.8.0] - 2026-10-24
+
+Route groups crossed a line between 0.7.9 and 0.7.12: they stopped being the hub operator's to write and became the producer's own declaration. That is a breaking change to anyone who ran a `config.groups.toml` or drove `aweshare hub groups --add`, and it shipped in patch releases; this release marks it as the major it is and finishes the discovery side of it.
+
+### Changed
+
+- **A group is its producer's declaration, not the hub's** — `[[groups]]` in the producer's own `config.toml` (or `config.produce.toml` for the hub's own models) travels with its register message and is persisted per producer in a `route_groups` table (schema v21). A group may only pool aliases in its own namespace, enforced at registration with the boundary named; a producer's pools survive its restarts and vanish with its token. `aweshare hub groups` is a read-only view of what arrived, and its write flags now fail naming where the work moved instead of being accepted and ignored. A hub that still has a `config.groups.toml` imports it once at boot, by namespace, into the producer that owns it.
+
+### Added
+
+- **A group row says who owns it and what it serves** — `PRODUCER` is the declaring producer (the group's namespace, which is also the only namespace its members may come from), and `OBSERVED MODEL` is what the group's head member reported: a group has no upstream of its own, so it reports the evidence of the member a request would actually reach, disagreement marker included. A pool no longer looks honest because one of its members is.
+
+- **The `MEMBER OF` column appears only when it has something to say** — a member row reaches the list through `--all` or an explicit `--alias`, so the default view no longer pays for a column of `-`. `--json` carries the field either way, and the hub and producer tables keep the shared column spec without it.
+
+- **`--alias` lifts the default hiding for the aliases it names** — asking for a group member by name no longer answers "all offerings offline — pass `--all`". Hiding keeps browsing short; it must not make a thing you asked for unlistable.
+
+### Fixed
+
+- **A multi-wire group is listed on every wire it serves** — members were matched by alias, so an alias speaking two wires had one row stand in for the other's: the wire it did speak produced no group row, and a consumer browsing that wire saw no pool at all. Members are now paired per (alias, protocol), the same pairing the router uses, which also renders a multi-wire group as one line with both protocols, as any multi-protocol alias does.
+
 ## [0.7.12] - 2026-10-24
 
 ### Fixed

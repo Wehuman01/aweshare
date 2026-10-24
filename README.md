@@ -406,6 +406,8 @@ aweshare hub groups peng1/kimi-k3          # one
 aweshare producer reload                   # after editing your config.toml
 ```
 
+A group shows up in `consumer list` as its own row: `PRODUCER` is the producer that declared it, `OBSERVED MODEL` is what its head member reported (a group has no upstream of its own), and its members are hidden — the pool is the name to call. `--all` lists them too, with a `MEMBER OF` column naming the group each belongs to; that column appears only when a row has one to name.
+
 Semantics, the same queue rules as backups with three additions:
 
 - **The namespace is the consent boundary.** A producer may only pool aliases in its own namespace — `YOUR_NAME/...` for a remote producer, `hub/...` for the hub's own catalog. The hub rejects an out-of-namespace group at registration, naming the boundary. Each member keeps its own caps, daily budget and model-honesty audit, and a group never bypasses admission — the serving member's `maxConcurrentUsers`, per-user concurrency and `dailyTokens` apply exactly as they would for a direct request, with usage landing on its own account. The member list is exactly what was written: no implicit hops, each member tried at most once per request, unresolvable members skipped.

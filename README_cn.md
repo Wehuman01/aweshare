@@ -401,6 +401,8 @@ aweshare hub groups peng1/kimi-k3          # 看一条
 aweshare producer reload                   # 改完自己的 config.toml 后
 ```
 
+组在 `consumer list` 里占自己一行：`PRODUCER` 是声明它的生产者，`OBSERVED MODEL` 是它队首成员上报的模型（组自己没有上游），成员默认隐藏——要调的就是组名。`--all` 把成员也列出来，并用 `MEMBER OF` 列说明每个成员属于哪个组；这一列只在有成员可说明时才出现。
+
 语义与备份同一套队列规则，外加三点：
 
 - **namespace 就是同意边界。** 生产者只能池化自己 namespace 里的 alias——远程生产者是 `YOUR_NAME/...`,hub 自家目录是 `hub/...`。hub 在注册时拒绝越界的组并点名边界。每个成员保留自己的限额、当日额度和模型诚实审计，组永远不绕开准入：实际服务成员的 `maxConcurrentUsers`、每用户并发和 `dailyTokens` 与直请求时完全一致，用量记在成员自己账上。成员列表就是写下的内容：没有隐式跳转，每个成员每次请求至多试一次，解析不到的成员直接跳过。
