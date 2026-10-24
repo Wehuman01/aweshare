@@ -52,3 +52,14 @@ alias = "YOUR_NAME/claude"
 backend = "anthropic"
 upstreamModel = "claude-sonnet-4-5"
 maxConcurrency = 2
+
+# Route groups: pool your own aliases behind one callable name. Consumers
+# call the group, the hub tries the members in order, the first that can
+# serve wins. Caps are optional — unset, they inherit from the members
+# (dailyTokens summed, concurrency maxed). A group may only list aliases in
+# your OWN namespace (YOUR_NAME/...): the hub enforces that at registration.
+
+#[[groups]]
+#alias = "YOUR_NAME/preview"
+#members = ["YOUR_NAME/preview-1", "YOUR_NAME/preview-2"]
+#maxConcurrencyPerUser = 3

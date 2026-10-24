@@ -3,6 +3,17 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.7.9] - 2026-10-24
+
+### Changed
+
+- **Route groups belong to the producer, not the operator** — a group is now declared in the producer's own `config.toml` (`[[groups]]`) and travels with its register message, so a producer's pools survive its restarts and vanish with its token. The hub validates each declaration against the producer's namespace and rejects anything outside it, by name. `aweshare hub groups` becomes a read-only view backed by `GET /admin/v1/groups` (admin sees all, a producer key its own); there is no hub-side group file and no operator command that writes one. The hub's own models pool the same way, via `[[groups]]` in `config.produce.toml` — the hub's producer config. A hub upgrading from 0.7.8 imports its old `config.groups.toml` **once**, by namespace: `hub/...` groups land on the hub itself, every other namespace's on the producer that owns it, so a group keeps spending the quota it always did — it just stops being the operator's to write. The file is left in place, unread, so a rollback still finds it.
+
+### Fixed
+
+- **Group caps actually govern admission** — a request naming a group is admitted against the group's own `dailyTokens` / `maxConcurrentUsers` / `maxConcurrencyPerUser` (what the consumer called is what it promised), falling back to the member's values when the group sets none. An override set on a group used to be display-only: it looked authoritative in `consumer list` while the member's looser cap kept letting requests through.
+- **An agent predating groups no longer wipes its producer's pools** — the register handler treated a missing `groups` field the same as an empty one, so a producer still on an older agent had every group it owned silently dropped from the hub's store on its next register. Absence now means "says nothing about groups, keep what the producer declared"; a present field — even an empty list — is a fresh declaration that replaces the set. This is also what makes the 0.7.8 import safe: producers still on older agents keep their migrated groups instead of erasing them.
+
 ## [0.7.8] - 2026-10-24
 
 ### Changed

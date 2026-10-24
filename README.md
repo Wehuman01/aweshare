@@ -379,38 +379,40 @@ The file lives in the hub data dir next to `config.toml` (`~/.aweshare-hub/confi
 
 ## Route groups (ordered member pools)
 
-Backups rescue one named alias. **Route groups** go a step further: the operator puts one stable name in front of an ordered list of member aliases — the same upstream model behind several accounts — and consumers configure that one name. The hub tries the members in order; the first that can serve wins.
+Backups rescue one named alias. **Route groups** go a step further: a producer puts one stable name in front of an ordered list of **its own** aliases — the same upstream model behind several accounts — and consumers configure that one name. The hub tries the members in order; the first that can serve wins.
+
+**Groups are the producer's to declare, never the operator's.** A group spends its declarer's quota, so it is written in that producer's own `config.toml` and travels with its register message — the hub validates it against the producer's namespace and refuses anything outside it. There is no hub-side group file and no operator command that writes one: `aweshare hub groups` is a read-only view of what producers declared.
 
 ```toml
-# ~/.aweshare-hub/config.groups.toml — key = group, value = ordered members
-"hub/step-5-preview" = ["hub/step-5-preview-1", "hub/step-5-preview-2"]
+# ~/.aweshare/config.toml (the producer's own config)
+[[groups]]
+alias = "YOUR_NAME/step-5-preview"
+members = ["YOUR_NAME/step-5-preview-1", "YOUR_NAME/step-5-preview-2"]
+# caps optional; unset they inherit from the members (see below)
+```
 
-# Caps are optional: absent, they are inherited from the members (see below).
-["hub/glm"]
-members = ["hub/glm-5.3", "hub/glm-5.3-flash"]
-maxConcurrentUsers = 6
+The hub's own models pool the same way — `[[groups]]` in its `config.produce.toml`, which is the hub's producer config:
+
+```toml
+# ~/.aweshare-hub/config.produce.toml
+[[groups]]
+alias = "hub/step-5-preview"
+members = ["hub/step-5-preview-1", "hub/step-5-preview-2"]
 ```
 
 ```bash
-aweshare hub groups                                # list every group
-aweshare hub groups hub/step-5-preview             # show one
-aweshare hub groups hub/step-5-preview --add hub/step-5-preview-2
-aweshare hub groups hub/step-5-preview --add hub/step-5-preview-0 --first   # prepend
-aweshare hub groups hub/step-5-preview --remove hub/step-5-preview-2
-aweshare hub groups hub/glm --max-users 6 --per-user 4                      # override caps
-aweshare hub groups hub/glm --clear-caps                                    # inherit again
-aweshare hub groups hub/step-5-preview --clear
+aweshare hub groups                        # every declared group (read-only)
+aweshare hub groups peng1/kimi-k3          # one
+aweshare producer reload                   # after editing your config.toml
 ```
 
 Semantics, the same queue rules as backups with three additions:
 
-- **Members are ordinary aliases in the group's own namespace** — a `hub/...` group lists only `hub/...` aliases, a producer's group only that producer's. The namespace is the consent boundary: pooling another producer's model would spend their quota on a promise they never made. Each member keeps its own caps, daily budget and model-honesty audit, and a group never bypasses admission — the serving member's `maxConcurrentUsers`, per-user concurrency and `dailyTokens` apply exactly as they would for a direct request, with usage landing on its own account. The member list is exactly what was written: no implicit hops, each member tried at most once per request, unresolvable members skipped.
-- **Caps are inherited unless the group overrides them** — `dailyTokens` is the members' **sum** (each keeps its own ledger, and the pool only refuses once every member is spent; any unlimited member makes the pool unlimited), while `maxConcurrentUsers` and `maxConcurrencyPerUser` are the members' **max** (the numbers the pool can always honour, since each member admits on its own counters). Set any of the three on the group to override, `--clear-caps` to inherit again. `consumer list` shows the effective values and, in `--json`, an `inherited` field saying which came from where.
-- **A group name that is also a real alias resolves to the real alias** — the specific wins over the pool. The hub logs a warning where the file loads; pick names no producer will register (`hub/...` beside the hub's own offerings is the natural spot).
+- **The namespace is the consent boundary.** A producer may only pool aliases in its own namespace — `YOUR_NAME/...` for a remote producer, `hub/...` for the hub's own catalog. The hub rejects an out-of-namespace group at registration, naming the boundary. Each member keeps its own caps, daily budget and model-honesty audit, and a group never bypasses admission — the serving member's `maxConcurrentUsers`, per-user concurrency and `dailyTokens` apply exactly as they would for a direct request, with usage landing on its own account. The member list is exactly what was written: no implicit hops, each member tried at most once per request, unresolvable members skipped.
+- **Caps are inherited unless the group overrides them** — `dailyTokens` is the members' **sum** (each keeps its own ledger, and the pool only refuses once every member is spent; any unlimited member makes the pool unlimited), while `maxConcurrentUsers` and `maxConcurrencyPerUser` are the members' **max** (the numbers the pool can always honour, since each member admits on its own counters). Set any of the three on the group to override. `consumer list` shows the effective values and, in `--json`, an `inherited` field saying which came from where.
+- **A group name that is also a real alias resolves to the real alias** — the specific wins over the pool. The hub logs a warning at registration; pick names no producer will register.
 - **Cooldowns**: a member that fails with a backend-dead fault (producer offline, degraded backend, closed tunnel, blocked) is skipped for 60s, doubling per consecutive failure up to 10 minutes; a success clears it at once. When every member is cooling down, the one back soonest is let through as the probe. Busy admission, spent daily budgets and closed share windows are not health signals and cool nothing down — each has its own precise semantics.
 - As with backups: failover triggers on alias-side faults only, a serving member stamps `x-aweshare-fallback: <alias actually served>`, each attempt's usage row is its own, and probes never fail over — `consumer list --ping hub/step-5-preview` tells the truth about the group's head member. A group with no member on the request's wire answers 404 like an unknown alias; when every member fails, the response is the first member that actually resolved — its error.
-
-The file lives in the hub data dir next to `config.toml` (`~/.aweshare-hub/config.groups.toml`; Docker: `/data/config.groups.toml`) with the same conventions as `config.backups.toml`: hot-reload within ~2s, a broken edit keeps the previous groups, an invalid file fails `hub serve` at startup, `hub init` scaffolds it, and it is a this-machine file rather than part of the admin REST API.
 
 ## Endpoints and errors
 
