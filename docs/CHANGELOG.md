@@ -3,6 +3,18 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.7.8] - 2026-10-24
+
+### Changed
+
+- **Route groups are namespace-scoped** — a group may only list members in its own namespace: a `hub/...` group lists `hub/...` aliases, a producer's group only that producer's. The namespace is the consent boundary — pooling another producer's model would spend their quota on a promise they never made, and there is no cross-producer consent mechanism that would make that fair. `config.groups.toml` rejects an out-of-namespace member at parse time naming the boundary, and `aweshare hub groups --add` refuses it up front.
+
+### Added
+
+- **Group caps are inherited from the members, overridable per group** — a group that sets none reports what the pool can actually honour: `dailyTokens` is the members' **sum** (each keeps its own ledger; the pool only refuses once every member is spent, and any unlimited member makes it unlimited), while `maxConcurrentUsers` and `maxConcurrencyPerUser` are the members' **max** (each member admits on its own counters, so the biggest member is what the pool always has). Set any of the three on the group to override — `config.groups.toml` takes both a bare member list and a `[group]` table with `members` + caps — and `aweshare hub groups GROUP --daily-tokens N --max-users N --per-user N` writes them; `--clear-caps` returns to inheriting. `consumer list --json` carries an `inherited` field saying, per cap, whether the value is `sum`/`max` from the members or an `override`.
+
+- **Groups are part of the discovery surface** — `GET /v1/catalog` returns `groups` (one row per wire the pool serves, with the effective caps) and marks every offering with `memberOf`; `GET /v1/models` lists groups too, so an OpenAI-shaped client sees the pool. `consumer list` renders a group as its own row (`TYPE group`) and **hides its members by default** — the pool is the name to call, and listing instances would only invite picking one; `--all` shows the whole picture with `TYPE` (`group` / `member` / `model`) and `MEMBER OF`, ordered pool-then-members. Hiding is a listing decision, never a routing one: a hidden member stays callable, so a backup queue pointing at one keeps working. `hub list offerings` and `producer list` carry the same two columns, keeping the three CLIs' tables locked together.
+
 ## [0.7.7] - 2026-10-23
 
 ### Added

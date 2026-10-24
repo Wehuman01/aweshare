@@ -374,25 +374,33 @@ aweshare hub backups peng/qwen3-coder --clear
 
 ## 路由组（有序成员池）
 
-别名备份救的是某一个点名 alias。**路由组**再进一步：运营者把一个稳定的名字放在一列有序的成员 alias 前面——同一个上游模型，后面挂着多个账号或多个生产者——消费者只配这一个名字。hub 按序尝试成员，第一个能服务的赢。
+别名备份救的是某一个点名 alias。**路由组**再进一步：运营者把一个稳定的名字放在一列有序的成员 alias 前面——同一个上游模型，后面挂着多个账号——消费者只配这一个名字。hub 按序尝试成员，第一个能服务的赢。
 
 ```toml
 # ~/.aweshare-hub/config.groups.toml — 键 = 组名，值 = 有序成员列表
-"hub/step-5-preview" = ["hub/step-5-preview-1", "hub/step-5-preview-2", "peng/step-5-preview"]
+"hub/step-5-preview" = ["hub/step-5-preview-1", "hub/step-5-preview-2"]
+
+# 限额可选：不写就从成员继承（见下）。
+["hub/glm"]
+members = ["hub/glm-5.3", "hub/glm-5.3-flash"]
+maxConcurrentUsers = 6
 ```
 
 ```bash
 aweshare hub groups                                # 列出全部组
 aweshare hub groups hub/step-5-preview             # 看一条
 aweshare hub groups hub/step-5-preview --add hub/step-5-preview-2
-aweshare hub groups hub/step-5-preview --add peng/step-5-preview --first   # 插到队首
+aweshare hub groups hub/step-5-preview --add hub/step-5-preview-0 --first   # 插到队首
 aweshare hub groups hub/step-5-preview --remove hub/step-5-preview-2
+aweshare hub groups hub/glm --max-users 6 --per-user 4                      # 覆盖限额
+aweshare hub groups hub/glm --clear-caps                                    # 回到继承
 aweshare hub groups hub/step-5-preview --clear
 ```
 
-语义与备份同一套队列规则，外加两点：
+语义与备份同一套队列规则，外加三点：
 
-- **成员就是普通 alias**——hub 自己的（`hub/...`）或任何生产者的——各自保留自己的限额、当日额度和模型诚实审计。组永远不绕开准入：实际服务成员的 `maxConcurrentUsers`、每用户并发和 `dailyTokens` 与直请求时完全一致，用量记在成员自己账上。成员列表就是写下的内容：没有隐式跳转，每个成员每次请求至多试一次，解析不到的成员直接跳过。
+- **成员必须是组自己 namespace 里的普通 alias**——`hub/...` 的组只能列 `hub/...`，生产者的组只能列它自己的。namespace 就是同意边界：把别人的模型拉进池子，等于拿别人没做过的承诺去花他的配额。每个成员保留自己的限额、当日额度和模型诚实审计，组永远不绕开准入：实际服务成员的 `maxConcurrentUsers`、每用户并发和 `dailyTokens` 与直请求时完全一致，用量记在成员自己账上。成员列表就是写下的内容：没有隐式跳转，每个成员每次请求至多试一次，解析不到的成员直接跳过。
+- **限额默认继承，组可以覆盖**——`dailyTokens` 取成员的**和**（各自独立记账，全部烧光池子才拒绝；任一成员无限则池子无限），`maxConcurrentUsers` 和 `maxConcurrencyPerUser` 取成员的**最大值**（每个成员按自己的计数器准入，这是池子一定兑现得了的数）。在组上写任一字段即覆盖，`--clear-caps` 回到继承。`consumer list` 显示生效值，`--json` 里的 `inherited` 字段说明每个值从哪来。
 - **组名与真实 alias 同名时，真实 alias 胜出**——具体的赢过池子。文件加载处会记一条警告；起名时避开生产者会注册的名字（`hub/...` 挨着 hub 自家 offering 是最自然的位置）。
 - **冷却**：成员以“后端已死”类故障失败时（producer 掉线、backend 降级、tunnel 断开、被封），跳过 60 秒，连续失败翻倍至上限 10 分钟；一旦成功立即解除。全部成员都在冷却时，放行最早恢复的那一个作为探活。准入忙、当日额度用尽、共享窗口关闭都不是健康信号，不触发冷却——它们各有精确语义。
 - 与备份一样：只在 alias 侧故障时转移，接管的成员在响应上盖 `x-aweshare-fallback: <实际服务的alias>` 头，每次尝试各记一条 usage row，探针不转移——`consumer list --ping hub/step-5-preview` 如实反映组的头成员。组在请求的线上协议下没有任何成员时返回 404，与未知 alias 一样；全部成员失败时，返回第一个真正解析到的成员的错误。
