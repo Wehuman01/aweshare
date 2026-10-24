@@ -3,6 +3,12 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.7.11] - 2026-10-24
+
+### Fixed
+
+- **`aweshare hub groups` reads the wrapper the admin API returns** — `GET /admin/v1/groups` answers `{object:'groups', groups:[...]}`, but the CLI destructured the body as the array itself, so every call died with `shown is not iterable`. The read-only view introduced in 0.7.9 was unusable until now.
+
 ## [0.7.10] - 2026-10-24
 
 ### Fixed
