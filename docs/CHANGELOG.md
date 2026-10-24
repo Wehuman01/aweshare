@@ -3,6 +3,12 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.7.10] - 2026-10-24
+
+### Fixed
+
+- **A hub-local catalog without `[[groups]]` no longer wipes the hub's pools** — the hub's own producer loads `config.produce.toml` through the same `LocalProducer` path as offerings, and that path unconditionally replaced the hub's groups with whatever the catalog declared. A catalog with no `[[groups]]` key therefore erased them, which is what bit a hub upgrading from 0.7.8: the legacy import landed `hub/step-5-preview`, then the first catalog reload — two seconds later, in the same boot — dropped it. The catalog now reports whether it says anything about groups at all, and only a catalog that does replaces the set, the same rule the tunnel register applies to an agent that predates groups. An explicit empty list still clears.
+
 ## [0.7.9] - 2026-10-24
 
 ### Changed
