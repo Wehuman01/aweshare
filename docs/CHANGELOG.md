@@ -3,6 +3,14 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.8.2] - 2026-10-24
+
+### Fixed
+
+- **A group's caps are finally the pool's — both in what it reports and in what admission enforces** — the request path looked the group's spec up by the *member* it was about to try, which is never a group, so a cap declared on a group was display-only: `consumer list` and `aweshare hub groups` showed it while admission ignored it entirely (a group declaring `maxConcurrentUsers 7` over members of 3 reported 7 and served whatever the members' failover summed to). Group caps are now checked once per request, before any member is tried — pool-wide, so no member swap can relieve them — and they bound the pool *on top of* each member's own cap: a declaration can tighten the pool but never widen an account past what it declared, which is what the old comment on the dead code always claimed. The daily-budget override reads the pool as one ledger (the members' usage since the group's own window, on this wire), the two concurrency overrides as pool-level counters under the members' own.
+- **A group's inherited concurrency caps are the members' sum, not their max** — the view said `max` while the router served the sum: each member admits on its own counters and a member's denial fails the request over to the next one, so a pool of two 3-user members serves 6 while its row said 3 (and its `IN USE`, a sum of per-member occupancies, could read `6/3`). `maxConcurrentUsers` and `maxConcurrencyPerUser` now sum, like `dailyTokens` always did, and `IN USE` counts a consumer spread across several members once — the pool's users, comparable with the pool's cap the way a member row's is with its own.
+- **When every member refuses, the error names the group the consumer called** — the surfaced failure was the head member's own message, so a consumer calling `peng1/kimi-k3` was told `peng1/kimi-k3-wb is at its max concurrent users (1)`: a name it never dialled, for a limit it never set. The member that refused is still there, as the detail, and in the failover log line.
+
 ## [0.8.1] - 2026-10-24
 
 ### Fixed
