@@ -3,6 +3,12 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.8.1] - 2026-10-24
+
+### Fixed
+
+- **Bare group members take the producer's namespace, as bare offering aliases always have** — 0.7.12 prefixed a hub-local group's own alias with `hub/` and left its members bare, so a catalog written the natural way (`alias = "step-5-preview"`, `members = ["step-5-preview-1", "step-5-preview-2"]`) stored members that resolve to nothing. Such a group disappeared from `/v1/catalog` entirely — no row, and no `memberOf` on its members — while every call to it answered `404 ALIAS_NOT_FOUND` naming the bare member. `aweshare hub groups` showed it as perfectly healthy, because it was: it was simply unreachable. Members now take the namespace before their shape is judged, at both entry points (the hub's own `config.produce.toml` and the register message's `validateGroup`), so a bare member name means "mine" exactly as it does under `[[offerings]]`. A member naming a foreign namespace is still rejected with the boundary named.
+
 ## [0.8.0] - 2026-10-24
 
 Route groups crossed a line between 0.7.9 and 0.7.12: they stopped being the hub operator's to write and became the producer's own declaration. That is a breaking change to anyone who ran a `config.groups.toml` or drove `aweshare hub groups --add`, and it shipped in patch releases; this release marks it as the major it is and finishes the discovery side of it.
