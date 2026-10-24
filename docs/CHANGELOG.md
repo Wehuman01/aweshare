@@ -3,6 +3,12 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.7.12] - 2026-10-24
+
+### Fixed
+
+- **A bare group alias in the hub's own catalog is prefixed `hub/`, exactly as its offerings are** — `[[groups]]` in `config.produce.toml` with `alias = "step-5-preview"` stored that bare string, which is not a callable alias: the group became unreachable and the previously imported `hub/step-5-preview` was replaced by it. A bare name now becomes `hub/<name>` (the same rule `[[offerings]]` follows), while a group claiming a foreign namespace is rejected with the boundary named. A hub that already hit this can re-declare the group in its catalog; the stored alias is then correct again.
+
 ## [0.7.11] - 2026-10-24
 
 ### Fixed
