@@ -3,6 +3,12 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.8.3] - 2026-10-30
+
+### Added
+
+- **The hub's landing page offers the agent-guided path** — browsers hitting `GET /` saw three human steps (ask for an invite, redeem it, point your SDK at this hub) and nothing for the growing share of arrivals who live inside a coding agent. A fourth alternative, circled "or" rather than numbered, carries the one line to paste into Claude Code, Codex, opencode or any other agent: it installs the CLI and the skill, asks your role, and walks through the rest, while the steps that print a one-time token stay in the visitor's own terminal. Bilingual like the rest of the page, and the long line wraps on narrow screens instead of scrolling.
+
 ## [0.8.2] - 2026-10-24
 
 ### Fixed
