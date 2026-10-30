@@ -38,6 +38,18 @@ aweshare consumer list --hub https://aweshare.wehuman.top --token asc_...   # af
 aweshare consumer list --hub https://aweshare.wehuman.top --token asc_... --ping --alias producer/model   # real call: is it usable end to end?
 ```
 
+## Have an agent set it up (easiest)
+
+In Claude Code, Codex, or another coding agent, tell it:
+
+```text
+Read https://github.com/wehuman01/aweshare/blob/main/README.ai.md and follow it to install and configure aweshare.
+```
+
+The agent installs the CLI and the aweshare skill, asks your role (producer / consumer), and completes everything that can be safely automated — installing, editing the config, running `producer doctor`. The steps that print a one-time token (`producer join`, `consumer join`) and the ones that start a long-running service (`producer start`) stay in your own terminal — hand the agent your invite code and it walks you through each step.
+
+Afterwards, just ask it: "share my local Ollama model as `<yourname>/<model>`", "why did my producer drop offline", "which offerings on the hub actually work right now".
+
 ## Producer quick start
 
 ### 1. Install

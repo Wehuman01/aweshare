@@ -38,6 +38,18 @@ aweshare consumer list --hub https://aweshare.wehuman.top --token asc_...   # �
 aweshare consumer list --hub https://aweshare.wehuman.top --token asc_... --ping --alias producer/model   # 真实调用：端到端到底能不能用?
 ```
 
+## 让 agent 帮你装（最省事）
+
+在 Claude Code、Codex 或其他编程 agent 里，对它说：
+
+```text
+阅读 https://github.com/wehuman01/aweshare/blob/main/README.ai.md 并按其指引安装和配置 aweshare。
+```
+
+agent 会安装 CLI 和 aweshare skill，问清你的角色（生产者 / 消费者），然后完成所有可安全自动化的部分——安装、改配置、跑 `producer doctor`。会打印一次性 token 的步骤（`producer join`、`consumer join`）和启动常驻服务的步骤（`producer start`）留在你自己的终端完成——把邀请码贴给 agent，它会告诉你每一步该跑什么。
+
+装好之后可以直接问它：「把本地的 Ollama 模型以 `<你的名字>/<模型>` 共享出去」「我的 producer 为什么掉线了」「现在 hub 上哪些模型真的能用」。
+
 ## 生产者快速开始
 
 ### 1. 安装
