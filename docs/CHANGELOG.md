@@ -3,6 +3,12 @@
 All notable changes to aweshare are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [semver](https://semver.org/).
 
+## [0.8.4] - 2026-11-23
+
+### Fixed
+
+- **One model's rate limit no longer takes its siblings down with it** — health was keyed by backend id alone, so two upstream 429s on any one model latched the whole backend and every alias behind it answered `503 BACKEND_DEGRADED` until a probe happened to succeed (with a shared free token, that was 14 hours of a three-alias outage caused by one model). A verdict now lands on the scope the failure actually describes: `429` and request-shaped 4xx are model-shaped and gate only that `(backend, model)`, while `401/403` and network faults stay account-level and gate every model on the backend. Heartbeats carry the per-model entries in a separate optional `modelStatus` field keyed `backend#model`, so an older hub keeps its backend-level view and an older agent simply reports nothing to scope; `request.start` gained an optional `upstreamModel` so a producer can attribute the response it relayed. Recovery probes walk scopes instead of backends — a model-scoped streak is re-probed with that model, an account-level one with any live model — which also retires the "probe a placeholder model, answer 400, stay degraded forever" trap. Hub-local `hub probe` output lists model scopes as `backend#model`.
+
 ## [0.8.3] - 2026-10-30
 
 ### Added
